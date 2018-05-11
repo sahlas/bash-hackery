@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# NAME
+#	cf -- clone a ${GIT_USER} fork of a git repo
+#
+# SYNOPSIS
+#	cf repository[.git] [repository[.git]]...
+#
+# DESCRIPTION
+#	git-clone's from a fork owned by ${GIT_USER} and sets the upstream name pointing
+#	to the original git repository.
+#
+# HISTORY
+#	20160608 - added history
+#
+
+if [ $# -eq 0 ]; then
+	echo
+	echo "usage: cf repo1 [repo2]..."
+	echo
+	echo "git-clone's from the ${GIT_USER} fork and sets the upstream name to"
+	echo "reference the original repository owned by ${GIT_OWNER}."
+	echo
+	exit 0
+fi
+
+GIT_USER=sahlas
+GIT_OWNER=sahlas
+
+# handy constants
+REPO_HOST=github.brightcove.com
+
+for REPO in "$@"; do
+
+	# pull off any trailing / added by tab-completion
+	REPO=`echo ${REPO} | sed -e "s/\///"`
+
+	# pull off any repo extensions (.git)
+	REPO=`echo ${REPO} | sed -e "s/\..*//"`
+
+	# clone it.
+	echo git clone git@${REPO_HOST}:${GIT_USER}/${REPO}.git
+	git clone "git@${REPO_HOST}:${GIT_USER}/${REPO}.git"
+
+	# if the clone was successful...
+	if [ -d "${REPO}" ]; then
+	
+		echo cd "${REPO}"
+		pushd "${REPO}" > /dev/null 2>&1
+
+			# set the upstream.
+			echo git remote add upstream git@${REPO_HOST}:${GIT_OWNER}/${REPO}.git
+			git remote add upstream "git@${REPO_HOST}:${GIT_OWNER}/${REPO}.git"
+
+			# checkout the develop branch if it's available.
+			if ( `git branch -a | grep -q "remotes/origin/develop"` ); then
+				git checkout develop
+			else
+				echo "develop branch not found."
+			fi
+		
+			# tell me more…
+			echo
+			git branch -a
+			echo
+			git remote -v
+			echo
+
+		popd
+		
+	else
+	
+		echo "FAIL: Cannot 'cd ${REPO}'"
+		exit 0
+		
+	fi
+
+done
+
+# yay!
+exit 1
